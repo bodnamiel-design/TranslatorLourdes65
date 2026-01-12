@@ -1,0 +1,1 @@
+: "Translator for UA in Lourdes FR-RU".
