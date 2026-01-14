@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: translator
+    env: python
+    buildCommand: pip install --only-binary=all torch torchaudio && pip install -r requirements.txt
+    startCommand: python bot.py
