@@ -1,7 +1,7 @@
-deep-translator==1.11.4
-python-telegram-bot==21.4
-openai-whisper
-pydub
-gtts
-ffmpeg-python
+openai-whisper==20231117
+torch==2.1.0
+torchaudio==2.1.0
+pydub==0.25.1
+ffmpeg-python==0.2.0
 python-telegram-bot==20.7
+
