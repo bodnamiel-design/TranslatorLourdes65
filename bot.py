@@ -1,39 +1,91 @@
 import logging
+import os
+import asyncio
+import whisper
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
-from deep_translator import GoogleTranslator  # pip install deep-translator python-telegram-bot
+from pydub import AudioSegment
+import io
 
-logging.basicConfig(level=logging.INFO)
+# Настройка логирования
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    await update.message.reply_text("Привет! Отправь текст/голос — переведу FR↔RU/UA. /lang ru для RU.")
+# ТВОЙ TELEGRAM_TOKEN
+TOKEN = "8508774998:AAGTo190LCDz65VPvRBt8VtDLqLacPgnL_0"
 
-async def translate_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    text = update.message.text
-    target = context.user_data.get('lang', 'ru')
+# FR → RU словарь (расширь!)
+DICT_FR_RU = {
+    'bonjour': 'привет',
+    'merci': 'спасибо',
+    'passeport': 'паспорт',
+    'préfecture': 'префектура',
+    'rendez-vous': 'встреча',
+    'demande': 'заявка',
+    'documents': 'документы'
+}
+
+def translate_fr_ru(text):
+    """Простой FR→RU через словарь"""
+    words = text.lower().split()
+    translated = []
+    for word in words:
+        translated.append(DICT_FR_RU.get(word, word))
+    return ' '.join(translated)
+
+# Whisper модель (загружается 1 раз)
+model = None
+
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("🎤 Голосовой перевод FR→RU!\n📝 Отправь текст или голосовое.")
+
+async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text_fr = update.message.text
+    text_ru = translate_fr_ru(text_fr)
+    await update.message.reply_text(f"🇫🇷: {text_fr}\n🇷🇺: {text_ru}")
+
+async def voice_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    global model
+    
     try:
-        translator = GoogleTranslator(source='auto', target=target)
-        translated = translator.translate(text)
-        await update.message.reply_text(f"Оригинал: {text}\nПеревод ({target}): {translated}")
-    except:
-        # Фикс: ручной перевод FR-RU
-        ru_text = text.replace("Bonjour", "Привет").replace("Lourdes", "Лурдес").replace("merci", "спасибо")
-        await update.message.reply_text(f"🔄 {text} → {ru_text}")
-
-
-async def set_lang(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    if context.args:
-        context.user_data['lang'] = context.args[0]
-        await update.message.reply_text(f"Язык: {context.args[0]}")
-    else:
-        await update.message.reply_text("Используй /lang ru или /lang fr")
+        # Скачиваем голосовое (OGG → WAV)
+        voice_file = await update.message.voice.get_file()
+        ogg_bytes = await voice_file.download_as_bytearray()
+        
+        # Конверт OGG → WAV
+        audio = AudioSegment.from_ogg(io.BytesIO(ogg_bytes))
+        wav_bytes = io.BytesIO()
+        audio.export(wav_bytes, format="wav")
+        wav_bytes.seek(0)
+        
+        # Загружаем Whisper (base модель ~50MB)
+        if model is None:
+            model = whisper.load_model("base")
+            logger.info("Whisper model loaded!")
+        
+        # Транскрипция FR
+        result = model.transcribe(wav_bytes, language="fr")
+        text_fr = result["text"].strip()
+        
+        if text_fr:
+            text_ru = translate_fr_ru(text_fr)
+            await update.message.reply_text(f"🎤 FR: {text_fr}\n🇷🇺 RU: {text_ru}")
+        else:
+            await update.message.reply_text("❌ Не разобрал голос. Говори громче! 🔊")
+            
+    except Exception as e:
+        logger.error(f"Voice error: {e}")
+        await update.message.reply_text("❌ Ошибка голоса. Попробуй текст.")
 
 def main():
-    app = Application.builder().token("8508774998:AAGTo190LCDz65VPvRBt8VtDLqLacPgnL_0").build()
+    app = Application.builder().token(TOKEN).build()
+    
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("lang", set_lang))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, translate_text))
-    app.run_polling()
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_handler))
+    app.add_handler(MessageHandler(filters.VOICE, voice_handler))
+    
+    logger.info("Bot starting...")
+    app.run_polling(drop_pending_updates=True)
 
 if __name__ == '__main__':
     main()
