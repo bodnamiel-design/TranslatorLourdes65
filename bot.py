@@ -56,7 +56,7 @@ def main():
     
     # WEBHOOK для Render Web Service!
     port = int(os.environ.get("PORT", 10000))
-    webhook_url = f"http://translatorlourdes65.onrender.com/{TOKEN}"
+    webhook_url = f"http://translatorlourdes65.onrender.com/8508774998:AAGTo190LCDz65VPvRBt8VtDLqLacPgnL_0"
     
     app.run_webhook(
         listen="0.0.0.0",
@@ -67,4 +67,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
