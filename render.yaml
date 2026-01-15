@@ -1,7 +1,0 @@
-services:
-  - type: web
-    env: python
-    buildCommand: |
-      pip install --index-url https://download.pytorch.org/whl/cpu torch torchaudio
-      pip install openai-whisper pydub ffmpeg-python python-telegram-bot==20.7
-    startCommand: python bot.py
