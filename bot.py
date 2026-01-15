@@ -18,8 +18,7 @@ async def voice_handler(update: Update, context):
     result = model.transcribe(audio_wav, language='fr')
     text_fr = result['text'].strip()
     # Translate FR->RU via GPT или dict
-    translated_ru = f"🇫🇷 {text_fr}
-🇷🇺 {translate_to_ru(text_fr)}"  # ваша функция
+    translated_ru = f"🇫🇷 {text_fr} 🇷🇺 {translate_to_ru(text_fr)}"  # ваша функция
     await update.message.reply_voice(translated_ru, voice.Note(duration=5))  # или text
 
 async def start(update: Update, context):
@@ -40,3 +39,4 @@ if __name__ == '__main__':
         url_path=TOKEN,
         webhook_url=f"https://your-service.onrender.com/{TOKEN}"
     )
+
