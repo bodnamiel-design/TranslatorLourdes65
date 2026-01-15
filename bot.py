@@ -1,48 +1,42 @@
-import os, logging, io, asyncio
+import os, logging, asyncio
 import whisper
+from telegram.ext import Application, CommandHandler, MessageHandler, filters
 from telegram import Update
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 from pydub import AudioSegment
 
-logging.basicConfig(level=logging.INFO)
-TOKEN = os.getenv('TELEGRAM_TOKEN') or "8508774998:AAGTo190LCDz65VPvRBt8VtDLqLacPgnL_0"
+TOKEN = os.getenv('TELEGRAM_TOKEN') or '8508774998:AAGTo190LCDz65VPvRBt8VtDLqLacPgnL_0'
+model = whisper.load_model('base')  # large-v3 для accuracy
 
-model = whisper.load_model("tiny")
+app = Application.builder().token(TOKEN).build()
 
-FR_RU = {'bonjour':'привет', 'merci':'спасибо', 'préfecture':'префектура', 'rendez-vous':'встреча', 
-         'passeport':'паспорт', 'tarbes':'Тарб', 'phonothèque':'фонотека'}
+async def voice_handler(update: Update, context):
+    voice = await update.message.voice.get_file()
+    audio = await voice.download_as_bytearray()
+    audio_seg = AudioSegment.from_file(io.BytesIO(audio), format="ogg")
+    audio_wav = io.BytesIO()
+    audio_seg.export(audio_wav, format="wav")
+    result = model.transcribe(audio_wav, language='fr')
+    text_fr = result['text'].strip()
+    # Translate FR->RU via GPT или dict
+    translated_ru = f"🇫🇷 {text_fr}
+🇷🇺 {translate_to_ru(text_fr)}"  # ваша функция
+    await update.message.reply_voice(translated_ru, voice.Note(duration=5))  # или text
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("🎤 Голос/текст FR→RU! Tarbes 2026 🚀")
+async def start(update: Update, context):
+    await update.message.reply_text("🎤 Отправь голос FR → RU! Префектура Tarbes ready.")
 
-async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = update.message.text.lower()
-    ru = ' '.join(FR_RU.get(w, w) for w in text.split())
-    await update.message.reply_text(ru)
+app.add_handler(CommandHandler("start", start))
+app.add_handler(MessageHandler(filters.VOICE, voice_handler))
 
-async def voice_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    try:
-        logging.info("Voice!")
-        file = await update.message.voice.get_file()
-        path = await file.download_to_drive('voice.ogg')
-        audio = AudioSegment.from_ogg(path)
-        audio.export('temp.wav', format='wav')
-        result = model.transcribe('temp.wav', language='fr')
-        text_fr = result['text'].lower()
-        ru = ' '.join(FR_RU.get(w, w) for w in text_fr.split())
-        await update.message.reply_text(f"🎤 {text_fr} 🇷🇺 {ru}")
-        os.remove('temp.wav')
-    except Exception as e:
-        await update.message.reply_text(f"Ошибка: {e}")
-
-def main():
-    app = Application.builder().token(TOKEN).build()
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_handler))
-    app.add_handler(MessageHandler(filters.VOICE, voice_handler))
-    print("🚀 Polling started! Tarbes Translator Live!")
-    app.run_polling(drop_pending_updates=True)
+async def post_init(application):
+    await application.bot.set_webhook(f"https://your-service.onrender.com/{TOKEN8508774998:AAGTo190LCDz65VPvRBt8VtDLqLacPgnL_0}")
 
 if __name__ == '__main__':
-    main()
-
+    port = int(os.environ.get('PORT', 10000))
+    app.run_webhook(
+        listen="0.0.0.0",
+        port=port,
+        webhook_path=TOKEN,
+        url_path=TOKEN,
+        webhook_url=f"https://your-service.onrender.com/{TOKEN}"
+    )
