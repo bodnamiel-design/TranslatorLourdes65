@@ -30,8 +30,7 @@ async def voice_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         result = model.transcribe('temp.wav', language='fr')
         text_fr = result['text'].lower()
         ru = ' '.join(FR_RU.get(w, w) for w in text_fr.split())
-        await update.message.reply_text(f"🎤 {text_fr}
-🇷🇺 {ru}")
+        await update.message.reply_text(f"🎤 {text_fr} 🇷🇺 {ru}")
         os.remove('temp.wav')
     except Exception as e:
         await update.message.reply_text(f"Ошибка: {e}")
@@ -46,3 +45,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
