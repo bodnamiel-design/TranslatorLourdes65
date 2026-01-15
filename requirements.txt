@@ -5,3 +5,4 @@ python-telegram-bot==20.7
 torch
 torchaudio
 ffmpeg-python
+pip install -r
