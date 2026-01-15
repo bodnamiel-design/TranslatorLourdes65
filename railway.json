@@ -1,0 +1,11 @@
+{
+  "build": {
+    "builder": "NIXPACKS",
+    "buildCommand": "pip install --index-url https://download.pytorch.org/whl/cpu torch torchaudio pydub ffmpeg-python python-telegram-bot==20.7 openai-whisper"
+  },
+  "deploy": {
+    "startCommand": "python bot.py",
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 5
+  }
+}
