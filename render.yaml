@@ -1,0 +1,6 @@
+services:
+  - type: worker  # ← КЛЮЧЕВОЕ!
+    env: python
+    buildCommand: |
+      pip install --index-url https://download.pytorch.org/whl/cpu torch torchaudio pydub ffmpeg-python python-telegram-bot==20.7 openai-whisper
+    startCommand: python bot.py
